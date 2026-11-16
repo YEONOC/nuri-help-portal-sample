@@ -26,6 +26,16 @@
       "url": "glossary.html#subcontract"
     },
     {
+      "term": "지급 의무량",
+      "def": "임가공업체에 내줘야 할 제품 무게. 받은 원료 × 그해 회수율로 계산하고, 나간 제품을 빼고 남은 양을 업체별로 봐요.",
+      "url": "glossary.html#obligation"
+    },
+    {
+      "term": "형태",
+      "def": "같은 합금 소재라도 고객이 요청하는 모양에 따라 나눈 구분(형태 가·나). 형태마다 품번이 달라요.",
+      "url": "glossary.html#form"
+    },
+    {
       "term": "월마감",
       "def": "매월 재고를 확정하는 절차. 마감 전에 그 달의 모든 입고·출고·이동을 끝내야 해요.",
       "url": "glossary.html#month-close"
