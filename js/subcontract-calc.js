@@ -1,211 +1,132 @@
-/* subcontract-calc.js — 임가공 대조: 보낸 원료 대비 돌려받은 소재 (선입선출). 화면 코드와 분리 */
-/* CSV 읽기는 blanket-order-calc.js(총량계약 PO 대조)를 함께 씀 */
+/* subcontract-calc.js — 임가공 관리: 업체에서 받은 원료 × 회수율 = 지급 의무량, 출고를 선입선출로 차감 (화면 코드와 분리) */
 (function (root) {
   'use strict';
 
-  var BO = root.BlanketOrder || (typeof require !== 'undefined' ? require('./blanket-order-calc.js') : null);
-  var U = BO.util;
-  var round2 = U.round2;
+  var E = root.ErpData || (typeof require !== 'undefined' ? require('./erp-data.js') : null);
+  var round2 = E.util.round2;
   var EPS = 0.0001;
-  var SEP = '\u0001';
 
-  /* 임가공 의뢰 CSV: 업체, 관리번호, 비고 */
-  function parseOrderCsv(text) {
-    var csv = U.parseCsv(text), h = csv.header;
-    var cVendor = U.findCol(h, ['업체', '임가공', '거래처'], 0);
-    var cNo = U.findCol(h, ['관리번호', '의뢰번호'], 1);
-    var cNote = U.findCol(h, ['비고', '메모'], 2);
-    return csv.rows.map(function (r) {
-      return { vendor: r.cols[cVendor] || '', no: r.cols[cNo] || '', note: r.cols[cNote] || '' };
-    }).filter(function (o) { return o.no; });
-  }
-
-  function batchKey(vendor, no, family, month) { return [vendor, no, family, month].join(SEP); }
-
-  function monthsBetween(month, today) {
-    var a = /^(\d{4})-(\d{2})/.exec(month || ''), b = /^(\d{4})-(\d{2})/.exec(today || '');
-    if (!a || !b) return 0;
-    return (Number(b[1]) - Number(a[1])) * 12 + (Number(b[2]) - Number(a[2]));
-  }
-
-  /* 기준 회수율: 업체 값(그 달 → 바로 앞 달) → 없으면 계열 공통 값(그 달 → 바로 앞 달) */
-  function findRate(rates, vendor, family, month) {
-    function pick(scopeVendor) {
-      var exact = null, prev = null;
-      (rates || []).forEach(function (x) {
-        if ((x.vendor || '') !== scopeVendor || x.family !== family) return;
-        if (!/^\d{4}-\d{2}$/.test(x.m || '') || x.r === '' || x.r === null || isNaN(Number(x.r))) return;
-        if (x.m === month) exact = x;
-        else if (x.m < month && (!prev || x.m > prev.m)) prev = x;
+  /* 품목코드 하나는 한 업체에만. 원료 코드와 제품 코드끼리도 겹치면 안 됨 */
+  function codeOwner(settings, code, skip) {
+    var found = null;
+    ['rawCodes', 'prdCodes'].forEach(function (kind) {
+      (settings[kind] || []).forEach(function (c, i) {
+        if (found || (skip && skip.kind === kind && skip.index === i)) return;
+        if ((c.code || '').trim() === code) found = { kind: kind, vendor: c.vendor };
       });
-      if (exact) return { r: Number(exact.r), from: '', scope: scopeVendor ? 'vendor' : 'common' };
-      if (prev) return { r: Number(prev.r), from: prev.m, scope: scopeVendor ? 'vendor' : 'common' };
-      return null;
-    }
-    return (vendor && pick(vendor)) || pick('');
+    });
+    return found;
   }
 
-  /* settings: { codes, rates, orders, done: {batchKey: 완료 시점 마지막 입고일}, staleMonths, today } */
-  function compute(settings, io) {
-    var raw = {}, prd = {};
-    (settings.codes || []).forEach(function (c) {
-      var code = (c.code || '').trim();
-      if (!code) return;
-      if (c.type === 'prd') prd[code] = (c.family || '').trim();
-      else raw[code] = (c.family || '').trim();
+  /* 그해 회수율 → 없으면 가장 가까운 앞 해 값 */
+  function findRate(rates, code, year) {
+    var exact = null, prev = null;
+    (rates || []).forEach(function (x) {
+      if (x.code !== code || x.r === '' || x.r === null || isNaN(Number(x.r))) return;
+      if (String(x.year) === year) exact = x;
+      else if (String(x.year) < year && (!prev || String(x.year) > String(prev.year))) prev = x;
     });
-    var orders = {};
-    (settings.orders || []).forEach(function (o) { if (!orders[o.no]) orders[o.no] = o.vendor; });
-    var done = settings.done || {};
-    var stale = Number(settings.staleMonths) > 0 ? Number(settings.staleMonths) : 3;
-    var today = settings.today || '';
+    if (exact) return { r: Number(exact.r), from: '' };
+    if (prev) return { r: Number(prev.r), from: String(prev.year) };
+    return null;
+  }
 
-    var groupMap = {}, groups = [];
-    var counts = { total: 0, sent: 0, recv: 0, nomatch: 0, skip: 0, bad: 0 };
-    var nomatchNos = {}, badLines = [], rowKinds = [];
+  /* settings: { vendors[{name}], rawCodes[{code, name, vendor}], prdCodes[{code, name, vendor}], rates[{code, year, r}] } */
+  function compute(settings, store) {
+    var raw = {}, prd = {}, names = {};
+    (settings.rawCodes || []).forEach(function (c) { if (c.code && c.vendor) { raw[c.code] = c.vendor; names[c.code] = c.name || c.code; } });
+    (settings.prdCodes || []).forEach(function (c) { if (c.code && c.vendor) prd[c.code] = c.vendor; });
 
-    function groupOf(no) {
-      if (!groupMap[no]) {
-        groupMap[no] = { vendor: orders[no], no: no, batchMap: {}, batches: [], receipts: [], extra: 0, extraList: [], level: 'ok' };
-        groups.push(groupMap[no]);
-      }
-      return groupMap[no];
-    }
-
-    (io || []).forEach(function (row) {
-      var kind;
-      if (row.bad) kind = 'bad';
-      else if (!orders.hasOwnProperty(row.po)) kind = 'nomatch';
-      else if (row.kind === '출고' && raw.hasOwnProperty(row.code)) kind = 'sent';
-      else if (row.kind === '입고' && prd.hasOwnProperty(row.code)) kind = 'recv';
-      else kind = 'skip';
-      counts.total++; counts[kind]++; rowKinds.push(kind);
-
-      if (kind === 'bad') badLines.push(row.line);
-      if (kind === 'nomatch') { var n = row.po || '(빈칸)'; nomatchNos[n] = (nomatchNos[n] || 0) + 1; }
-      if (kind === 'sent') {
-        var g = groupOf(row.po), fam = raw[row.code], month = row.date.slice(0, 7), bk = fam + SEP + month;
-        if (!g.batchMap[bk]) {
-          var key = batchKey(g.vendor, g.no, fam, month);
-          g.batchMap[bk] = {
-            key: key, family: fam, month: month, sent: 0, rate: null, rateFrom: '', rateScope: '',
-            expected: 0, received: 0, allocs: [], done: done.hasOwnProperty(key), closedAt: done[key] || ''
-          };
-          g.batches.push(g.batchMap[bk]);
-        }
-        g.batchMap[bk].sent += row.qty;
-      }
-      if (kind === 'recv') groupOf(row.po).receipts.push({ date: row.date, code: row.code, qty: row.qty, family: prd[row.code] });
+    var vendorMap = {}, vendors = [];
+    (settings.vendors || []).forEach(function (v) {
+      if (!v.name || vendorMap[v.name]) return;
+      vendorMap[v.name] = { name: v.name, monthMap: {}, months: [], ships: [], extra: 0, extraList: [] };
+      vendors.push(vendorMap[v.name]);
     });
 
-    var alerts = { danger: [], stale: [], rate: [], extra: [], early: [], info: [] };
-    var totals = { sent: 0, expected: 0, received: 0, remain: 0, remainRaw: 0, loss: 0 };
+    var alerts = { rate: [], extra: [], estimated: [], info: [] };
+    var counts = { inbound: 0, inboundUsed: 0, inboundSkip: 0, ships: 0 };
 
-    groups.sort(function (a, b) { return a.vendor.localeCompare(b.vendor) || a.no.localeCompare(b.no); });
-    groups.forEach(function (g) {
-      g.label = [g.vendor, g.no].filter(Boolean).join(' · ');
-      delete g.batchMap;
-      function warn() { if (g.level === 'ok') g.level = 'warn'; }
+    E.inboundList(store).forEach(function (x) {
+      counts.inbound++;
+      var v = vendorMap[raw[x.code]];
+      if (!v) { counts.inboundSkip++; return; }
+      counts.inboundUsed++;
+      var m = x.date.slice(0, 7);
+      if (!v.monthMap[m]) { v.monthMap[m] = { month: m, items: {}, owed: 0, deducted: 0, allocs: [], rateNotes: [] }; v.months.push(v.monthMap[m]); }
+      v.monthMap[m].items[x.code] = round2((v.monthMap[m].items[x.code] || 0) + x.qty);
+    });
 
-      g.batches.sort(function (a, b) { return a.month.localeCompare(b.month) || a.family.localeCompare(b.family); });
-      g.batches.forEach(function (b) {
-        b.sent = round2(b.sent);
-        var famName = b.family || '(계열 없음)';
-        var rate = findRate(settings.rates, g.vendor, b.family, b.month);
-        if (!rate) {
-          alerts.rate.push(g.label + ' — ' + famName + ' ' + b.month + ' 기준 회수율이 없어 받아야 할 소재를 계산하지 못했어요. 설정에서 회수율을 적어 주세요.');
-          warn();
-          return;
-        }
-        b.rate = rate.r; b.rateFrom = rate.from; b.rateScope = rate.scope;
-        b.expected = round2(b.sent * rate.r / 100);
-        if (rate.from) {
-          alerts.rate.push(g.label + ' — ' + famName + ' ' + b.month + ' 회수율이 없어 ' + rate.from + ' 값(' + rate.r + '%)을 썼어요.');
-          warn();
-        }
+    E.orderList(store).forEach(function (o) {
+      var v = vendorMap[prd[o.code]];
+      if (!v || (o.shipped || 0) <= EPS) return;
+      var sd = E.shipDate(store, o);
+      counts.ships++;
+      v.ships.push({ order: o.no, code: o.code, date: sd.date, estimated: sd.estimated, qty: o.shipped });
+      if (sd.estimated) alerts.estimated.push(v.name + ' — ' + o.no + ' 출고일이 없어 납기일 ' + sd.date + '로 추정했어요.');
+    });
+
+    var totals = { received: 0, owed: 0, shipped: 0, remain: 0 };
+    vendors.forEach(function (v) {
+      v.months.sort(function (a, b) { return a.month.localeCompare(b.month); });
+      v.months.forEach(function (m) {
+        var year = m.month.slice(0, 4);
+        m.lines = Object.keys(m.items).sort().map(function (code) {
+          var rate = findRate(settings.rates, code, year);
+          var owed = rate ? round2(m.items[code] * rate.r / 100) : 0;
+          if (!rate) {
+            alerts.rate.push(v.name + ' — ' + m.month + ' ' + names[code] + '(' + code + ') ' + year + '년 회수율이 없어 줘야 할 양을 계산하지 못했어요. 설정에서 회수율을 적어 주세요.');
+          } else if (rate.from) {
+            alerts.rate.push(v.name + ' — ' + m.month + ' ' + names[code] + '(' + code + ') ' + year + '년 회수율이 없어 ' + rate.from + '년 값(' + rate.r + '%)을 썼어요.');
+          }
+          m.owed = round2(m.owed + owed);
+          return { code: code, name: names[code], qty: m.items[code], rate: rate ? rate.r : null, rateFrom: rate ? rate.from : '', owed: owed };
+        });
+        m.received = round2(m.lines.reduce(function (s, l) { return s + l.qty; }, 0));
       });
 
-      /* 선입선출: 입고일 순서대로 가장 먼저 보낸 달부터 차감. 완료한 배치는 완료 시점 이후 입고를 받지 않음 */
-      g.receipts.sort(function (a, b) { return a.date.localeCompare(b.date); });
-      g.receipts.forEach(function (rc) {
-        var left = rc.qty, earlyMonths = [];
-        var rcMonth = rc.date.slice(0, 7);
-        g.batches.forEach(function (b) {
+      /* 선입선출: 출고일 순서대로 가장 오래된 달의 잔량부터 차감 */
+      v.ships.sort(function (a, b) { return a.date.localeCompare(b.date) || a.order.localeCompare(b.order); });
+      v.ships.forEach(function (s) {
+        var left = s.qty;
+        v.months.forEach(function (m) {
           if (left <= EPS) return;
-          if (rc.family && b.family !== rc.family) return;
-          if (b.done && rc.date > b.closedAt) return;
-          var avail = b.expected - b.received;
+          var avail = m.owed - m.deducted;
           if (avail <= EPS) return;
           var take = Math.min(left, avail);
-          b.received = round2(b.received + take);
+          m.deducted = round2(m.deducted + take);
           left = round2(left - take);
-          var early = rcMonth < b.month;
-          if (early && earlyMonths.indexOf(b.month) === -1) earlyMonths.push(b.month);
-          b.allocs.push({ date: rc.date, code: rc.code, qty: rc.qty, take: round2(take), rest: left, early: early });
+          m.allocs.push({ order: s.order, date: s.date, estimated: s.estimated, qty: s.qty, take: round2(take), rest: left });
         });
-        if (earlyMonths.length) {
-          alerts.early.push(g.label + ' — ' + rc.date + ' 입고를 그보다 늦게 보낸 ' + earlyMonths.join(', ') +
-            ' 원료분에서 차감했어요. 출고 누락이나 날짜를 확인해 주세요.');
-          warn();
-        }
         if (left > EPS) {
-          g.extra = round2(g.extra + left);
-          g.extraList.push({ date: rc.date, code: rc.code, qty: rc.qty, over: left });
-          alerts.extra.push(g.label + ' — ' + rc.date + ' 입고 ' + rc.qty.toLocaleString('ko-KR') + ' kg 중 ' +
-            left.toLocaleString('ko-KR') + ' kg은 받아야 할 양보다 더 받았어요. 출고 누락이나 회수율을 확인해 주세요.');
-          warn();
+          v.extra = round2(v.extra + left);
+          v.extraList.push({ order: s.order, date: s.date, over: left });
+          alerts.extra.push(v.name + ' — ' + s.date + ' 출고(' + s.order + ') 중 ' + left.toLocaleString('ko-KR') +
+            ' kg은 줘야 할 양보다 더 내줬어요. 입고 누락이나 회수율을 확인해 주세요.');
         }
       });
 
-      g.sent = 0; g.expected = 0; g.received = 0; g.remain = 0; g.remainRaw = 0; g.loss = 0;
-      g.batches.forEach(function (b) {
-        b.remain = round2(b.expected - b.received);
-        b.elapsed = monthsBetween(b.month, today);
-        b.actualRate = b.sent > EPS ? round2(b.received / b.sent * 100) : 0;
-        b.loss = 0; b.remainRaw = 0; b.stale = false;
-        if (b.done) {
-          if (b.rate !== null && b.remain > EPS) {
-            b.loss = b.remain;
-            alerts.danger.push(g.label + ' — ' + (b.family || '(계열 없음)') + ' ' + b.month + '분을 완료했는데 실제 회수율 ' +
-              b.actualRate + '%가 기준 ' + b.rate + '%보다 낮아요 (' + b.loss.toLocaleString('ko-KR') + ' kg 덜 받음). 업체에 확인해 주세요.');
-            g.level = 'danger';
-          }
-          b.status = b.loss > EPS ? '완료 · 덜 받음' : '완료';
-        } else {
-          if (b.rate && b.remain > EPS) b.remainRaw = round2(b.remain / b.rate * 100);
-          b.status = b.received <= EPS ? '미회수' : (b.remain <= EPS ? '소진' : '회수 중');
-          if (b.rate !== null && b.remain > EPS && b.elapsed >= stale) {
-            b.stale = true;
-            alerts.stale.push(g.label + ' — ' + (b.family || '(계열 없음)') + ' ' + b.month + '분 ' + b.remain.toLocaleString('ko-KR') +
-              ' kg을 ' + b.elapsed + '개월째 받지 못했어요 (기준 ' + stale + '개월).');
-            warn();
-          }
-          g.remain += b.remain > EPS ? b.remain : 0;
-          g.remainRaw += b.remainRaw;
-        }
-        g.sent += b.sent; g.expected += b.expected; g.received += b.received; g.loss += b.loss;
+      v.received = 0; v.owed = 0; v.shipped = 0;
+      v.months.forEach(function (m) {
+        m.remain = round2(m.owed - m.deducted);
+        v.received += m.received; v.owed += m.owed;
       });
-      g.received = round2(g.received + g.extra);
-      ['sent', 'expected', 'received', 'remain', 'remainRaw', 'loss'].forEach(function (k) {
-        g[k] = round2(g[k]); totals[k] += g[k];
-      });
+      v.ships.forEach(function (s) { v.shipped += s.qty; });
+      v.received = round2(v.received); v.owed = round2(v.owed); v.shipped = round2(v.shipped);
+      v.remain = round2(v.months.reduce(function (s, m) { return s + (m.remain > EPS ? m.remain : 0); }, 0));
+      var cur = v.months.filter(function (m) { return m.remain > EPS; })[0];
+      v.current = cur ? { month: cur.month, started: cur.deducted > EPS } : null;
+      delete v.monthMap;
+      totals.received += v.received; totals.owed += v.owed; totals.shipped += v.shipped; totals.remain += v.remain;
     });
     Object.keys(totals).forEach(function (k) { totals[k] = round2(totals[k]); });
 
-    if (counts.nomatch) {
-      alerts.info.push('관리번호가 등록된 임가공 의뢰와 맞지 않는 ' + counts.nomatch + '행을 뺐어요: ' +
-        Object.keys(nomatchNos).map(function (k) { return k + ' (' + nomatchNos[k] + '행)'; }).join(', '));
-    }
-    if (counts.skip) alerts.info.push('설정에 없는 품목 코드이거나 구분이 맞지 않는 ' + counts.skip + '행을 뺐어요.');
-    if (counts.bad) {
-      alerts.info.push('날짜·수량·구분을 읽지 못한 ' + counts.bad + '행을 뺐어요 (CSV ' +
-        badLines.slice(0, 10).join(', ') + (badLines.length > 10 ? ' …' : '') + '행).');
-    }
+    if (counts.inboundSkip) alerts.info.push('임가공 원료로 등록되지 않은 품목코드의 입고 ' + counts.inboundSkip + '건은 뺐어요.');
 
-    return { groups: groups, alerts: alerts, totals: totals, counts: counts, rowKinds: rowKinds, staleMonths: stale };
+    return { vendors: vendors, totals: totals, alerts: alerts, counts: counts };
   }
 
-  var api = { parseOrderCsv: parseOrderCsv, parseIoCsv: BO.parseIoCsv, compute: compute, batchKey: batchKey };
-  root.Subcontract = api;
+  var api = { compute: compute, findRate: findRate, codeOwner: codeOwner };
+  root.SubcontractCalc = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>총량계약 대조 — 업무 도움말 포털</title>
+  <title>총량계약 현황 — 업무 도움말 포털</title>
   <link rel="stylesheet" href="../css/tokens.css">
   <link rel="stylesheet" href="../css/layout.css">
   <link rel="stylesheet" href="../css/components.css">
@@ -39,149 +39,138 @@
         <li><a href="../help/approval.html">전자결재</a></li>
         <li class="sidebar-divider" role="separator"></li>
         <li><a href="../glossary.html">용어집</a></li>
-        <li><a href="contract.html" aria-current="page">총량계약 대조</a></li>
-        <li><a href="blanket-order.html">총량계약 PO 대조</a></li>
-        <li><a href="subcontract.html">임가공 대조</a></li>
+        <li><a href="contract.html" aria-current="page">총량계약 현황</a></li>
+        <li><a href="subcontract.html">임가공 관리</a></li>
         <li><a href="../admin/index.html">관리자 화면</a></li>
       </ul>
     </nav>
 
     <main class="main-content" id="main-content" tabindex="-1">
-      <h1>총량계약 대조</h1>
-      <p class="intro-text">출고 CSV를 올리면 계약별 출고 수량과 잔량을 계산해요.
-         올린 파일의 원본은 바꾸지 않아요.</p>
-      <p>계약 수량 대비 출고를 보는 화면이에요. 고객사에서 받은 원료에 회수율을 곱해
-         PO별로 견주려면 <a href="blanket-order.html">총량계약 PO 대조</a>를 써요.</p>
+      <h1>총량계약 현황</h1>
+      <p class="intro-text">고객사와 계열별 총량으로 맺은 계약을 관리번호(고객 PO 번호)로 ERP 주문과 묶어,
+        계약별 나간 양·남은 양·매출 추정을 봐요. 올린 파일의 원본은 바꾸지 않아요.</p>
+      <p>임가공 제품 출고는 같은 파일에서 자동으로 빠지고 <a href="subcontract.html">임가공 관리</a>에서 계산해요.</p>
 
-      <div class="callout callout--info">
-        <span class="callout__icon" aria-hidden="true">ℹ</span>
-        <div class="callout__body">
-          <strong class="callout__title">CSV 형식</strong>
-          <p>열 순서: 계약번호, 거래처, 품번, 계약수량(kg), 출고일, 출고수량(kg).
-             첫 행은 헤더(건너뜀). UTF-8 인코딩.
-             <a href="../data/samples/contract-sample.csv" download>견본 CSV 내려받기</a></p>
+      <div class="btn-row no-print">
+        <button type="button" class="btn btn--secondary" id="btn-sample">견본 데이터 채우기</button>
+        <button type="button" class="btn btn--danger" id="btn-reset">모두 지우기</button>
+        <span id="top-msg" class="hint" aria-live="polite"></span>
+      </div>
+
+      <div class="tool-tabs no-print" role="tablist" aria-label="총량계약 현황 메뉴">
+        <button type="button" class="tool-tab" role="tab" id="tab-codes" aria-controls="panel-codes" aria-selected="false" tabindex="-1">설정</button>
+        <button type="button" class="tool-tab" role="tab" id="tab-contracts" aria-controls="panel-contracts" aria-selected="false" tabindex="-1">계약</button>
+        <button type="button" class="tool-tab" role="tab" id="tab-erp" aria-controls="panel-erp" aria-selected="false" tabindex="-1">ERP 자료</button>
+        <button type="button" class="tool-tab" role="tab" id="tab-status" aria-controls="panel-status" aria-selected="true">현황</button>
+        <button type="button" class="tool-tab" role="tab" id="tab-check" aria-controls="panel-check" aria-selected="false" tabindex="-1">확인할 것</button>
+        <button type="button" class="tool-tab" role="tab" id="tab-settle" aria-controls="panel-settle" aria-selected="false" tabindex="-1">계약 정산</button>
+      </div>
+
+      <!-- 설정 -->
+      <div class="tool-panel" role="tabpanel" id="panel-codes" aria-labelledby="tab-codes" hidden>
+        <h2>품목 코드</h2>
+        <p class="hint">형태마다 품목 코드가 달라요. 코드마다 계열을 적으면, 주문을 계약의 같은 계열에 더해요.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>품목 코드</th><th>품목명</th><th>계열</th><th><span class="sr-only">지우기</span></th></tr></thead>
+            <tbody id="codes-body"></tbody>
+          </table>
+        </div>
+        <div class="btn-row no-print">
+          <button type="button" class="btn btn--secondary btn--small" id="btn-add-code">품목 추가</button>
         </div>
       </div>
 
-      <div class="upload-area">
-        <label for="csv-input" class="btn btn--secondary">CSV 파일 선택</label>
-        <input type="file" id="csv-input" accept=".csv" class="sr-only">
-        <span id="file-name" class="text-muted" aria-live="polite">파일을 선택해 주세요.</span>
+      <!-- 계약 -->
+      <div class="tool-panel" role="tabpanel" id="panel-contracts" aria-labelledby="tab-contracts" hidden>
+        <h2>계약 올리기</h2>
+        <div class="callout callout--info">
+          <span class="callout__icon" aria-hidden="true">ℹ</span>
+          <div class="callout__body">
+            <strong class="callout__title">CSV 형식</strong>
+            <p>한 행에 계열 하나. 열 이름 <code>고객사</code>, <code>관리번호</code>, <code>계열</code>, <code>계약수량(kg)</code>,
+              <code>단가(원/kg)</code>, <code>납품시작월</code>, <code>납품끝월</code>, <code>비고</code>. 같은 관리번호의 행은 한 계약으로 묶어요.
+              <a href="../data/samples/contract-sample.csv" download>견본 CSV 내려받기</a></p>
+          </div>
+        </div>
+        <div class="btn-row">
+          <label for="contract-file" class="btn btn--secondary">계약 CSV 선택</label>
+          <input type="file" id="contract-file" accept=".csv" class="sr-only">
+          <span id="contract-msg" class="hint" aria-live="polite">파일을 선택해 주세요.</span>
+        </div>
+        <h2>등록된 계약</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>고객사</th><th>관리번호</th><th>계열</th><th class="num">계약(kg)</th><th class="num">단가(원/kg)</th><th>납품월</th><th><span class="sr-only">지우기</span></th></tr></thead>
+            <tbody id="contract-body"></tbody>
+          </table>
+        </div>
+        <h2>삭제된 계약</h2>
+        <p class="hint">지운 계약은 완전히 없애지 않고 여기에 남겨요. "되살리기"를 누르면 다시 계산에 들어가요.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>고객사</th><th>관리번호</th><th>지운 날</th><th><span class="sr-only">되살리기</span></th></tr></thead>
+            <tbody id="deleted-body"></tbody>
+          </table>
+        </div>
       </div>
 
-      <div id="result-area" aria-live="polite"></div>
+      <!-- ERP 자료 -->
+      <div class="tool-panel" role="tabpanel" id="panel-erp" aria-labelledby="tab-erp" hidden>
+        <h2>ERP 자료 올리기</h2>
+        <div class="callout callout--info">
+          <span class="callout__icon" aria-hidden="true">ℹ</span>
+          <div class="callout__body">
+            <strong class="callout__title">올리는 파일</strong>
+            <p>[영업관리 › 주문현황]: <code>주문번호</code>, <code>관리번호</code>, <code>품목코드</code>, <code>주문일</code>, <code>납기일</code>,
+              <code>주문수량(kg)</code>, <code>출고수량(kg)</code>.
+              [영업관리 › 출고현황]: <code>주문번호</code>, <code>출고일</code>, <code>출고수량(kg)</code> — 출고일을 채워요. 없으면 납기일로 추정해요.
+              올릴 때마다 쌓이고, 같은 주문번호는 새 값으로 바꿔요. 임가공 관리와 같은 자료를 써요.
+              <a href="../data/samples/erp-orders-sample.csv" download>주문현황 견본</a> ·
+              <a href="../data/samples/erp-shipments-sample.csv" download>출고현황 견본</a></p>
+          </div>
+        </div>
+        <div class="btn-row">
+          <label for="orders-file" class="btn btn--secondary">주문현황 CSV 선택</label>
+          <input type="file" id="orders-file" accept=".csv" class="sr-only">
+          <label for="ships-file" class="btn btn--secondary">출고현황 CSV 선택</label>
+          <input type="file" id="ships-file" accept=".csv" class="sr-only">
+        </div>
+        <p id="erp-msg" class="hint" aria-live="polite"></p>
+        <div id="erp-summary"></div>
+      </div>
+
+      <!-- 현황 -->
+      <div class="tool-panel" role="tabpanel" id="panel-status" aria-labelledby="tab-status">
+        <h2>계약별 현황</h2>
+        <div id="status-stats"></div>
+        <div class="filter-bar no-print" id="status-filter" hidden>
+          <label>고객사 <select class="field" id="filter-customer"></select></label>
+        </div>
+        <div id="status-groups" aria-live="polite"></div>
+        <p class="hint">매출 추정은 단가 × 나간 kg이에요(부가세 별도, 내부 추정치). 차량 단위로 주문하고 실제 무게로 출고하기 때문에
+          초과·미출고는 오류가 아니라 참고로 표시해요.</p>
+      </div>
+
+      <!-- 확인할 것 -->
+      <div class="tool-panel" role="tabpanel" id="panel-check" aria-labelledby="tab-check" hidden>
+        <h2>확인할 것</h2>
+        <div id="check-box"></div>
+      </div>
+
+      <!-- 계약 정산 -->
+      <div class="tool-panel" role="tabpanel" id="panel-settle" aria-labelledby="tab-settle" hidden>
+        <h2>계약 정산</h2>
+        <p class="hint">납품 마지막 달이 지난 계약을 계열별로 정리해요. 차이는 나간 양 − 계약 수량이에요.</p>
+        <div id="settle-box"></div>
+      </div>
     </main>
   </div>
 
   <script src="../js/theme.js"></script>
-  <script>
-  (function () {
-    'use strict';
-
-    var input   = document.getElementById('csv-input');
-    var label   = document.getElementById('file-name');
-    var result  = document.getElementById('result-area');
-
-    if (!input) return;
-
-    input.addEventListener('change', function () {
-      var file = input.files[0];
-      if (!file) return;
-      label.textContent = file.name;
-      result.innerHTML = '';
-
-      var reader = new FileReader();
-      reader.onload = function (e) {
-        try { processCSV(e.target.result); }
-        catch (err) {
-          result.innerHTML = '<div class="callout callout--danger">' +
-            '<span class="callout__icon" aria-hidden="true">✕</span>' +
-            '<div class="callout__body"><strong class="callout__title">오류</strong>' +
-            '<p>CSV를 읽지 못했어요. 형식을 확인해 주세요.</p></div></div>';
-        }
-      };
-      reader.readAsText(file, 'UTF-8');
-    });
-
-    function parseCSV(text) {
-      var lines = text.trim().split(/\r?\n/);
-      return lines.slice(1).map(function (line) {
-        var cols = line.split(',');
-        return {
-          contractId:  (cols[0] || '').trim(),
-          customer:    (cols[1] || '').trim(),
-          itemCode:    (cols[2] || '').trim(),
-          contractQty: parseFloat((cols[3] || '0').trim()) || 0,
-          date:        (cols[4] || '').trim(),
-          shipQty:     parseFloat((cols[5] || '0').trim()) || 0,
-        };
-      }).filter(function (r) { return r.contractId; });
-    }
-
-    function processCSV(text) {
-      var rows = parseCSV(text);
-      if (!rows.length) {
-        result.innerHTML = '<p class="text-muted">데이터가 없어요.</p>';
-        return;
-      }
-
-      // 계약별 집계
-      var contracts = {};
-      rows.forEach(function (r) {
-        if (!contracts[r.contractId]) {
-          contracts[r.contractId] = {
-            id: r.contractId, customer: r.customer,
-            itemCode: r.itemCode, contractQty: r.contractQty,
-            shipped: 0,
-          };
-        }
-        contracts[r.contractId].shipped += r.shipQty;
-      });
-
-      var html = '<h2>대조 결과</h2><div class="table-wrap"><table>' +
-        '<thead><tr>' +
-        '<th>계약 번호</th><th>거래처</th><th>품번</th>' +
-        '<th class="num">계약 수량(kg)</th>' +
-        '<th class="num">출고 수량(kg)</th>' +
-        '<th class="num">잔량(kg)</th>' +
-        '<th>비고</th>' +
-        '</tr></thead><tbody>';
-
-      Object.values(contracts).forEach(function (c) {
-        var remain = c.contractQty - c.shipped;
-        var note = '';
-        if (remain < 0) {
-          note = '<span class="text-warn">초과 출고</span>';
-        } else if (c.shipped === 0) {
-          note = '<span class="text-muted">미출고</span>';
-        }
-        html += '<tr>' +
-          '<td>' + c.id + '</td>' +
-          '<td>' + c.customer + '</td>' +
-          '<td><code>' + c.itemCode + '</code></td>' +
-          '<td class="num">' + c.contractQty.toLocaleString() + '</td>' +
-          '<td class="num">' + c.shipped.toLocaleString() + '</td>' +
-          '<td class="num">' + remain.toLocaleString() + '</td>' +
-          '<td>' + note + '</td>' +
-          '</tr>';
-      });
-
-      html += '</tbody></table></div>';
-      html += '<p class="text-muted tool-note">초과·미출고는 오류가 아닌 참고 표시예요. 올린 파일은 변경되지 않아요.</p>';
-      result.innerHTML = html;
-    }
-  })();
-  </script>
-
-  <style>
-    .upload-area {
-      display: flex; align-items: center; gap: var(--s3);
-      margin: var(--s4) 0;
-    }
-    .text-warn { color: var(--danger-text); font-weight: 600; }
-    code { font-family: var(--font-mono); font-size: 13px;
-           background: var(--surface); padding: 1px 4px; border-radius: 3px; }
-    .tool-note { margin-top: var(--s3); font-size: var(--fs-sm); }
-  </style>
+  <script src="../js/erp-data.js"></script>
+  <script src="../js/contract-calc.js"></script>
+  <script src="../js/sample-data.js"></script>
+  <script src="../js/contract.js"></script>
 </body>
 </html>

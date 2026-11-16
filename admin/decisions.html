@@ -102,7 +102,22 @@
         approver +
         '<span>반영일: ' + (d.date || '—') + '</span>' +
         '</div>' +
+        previousHtml(d.previous) +
         '</article>';
+    }
+
+    /* 바뀐 결정은 지우지 않고 "이전 결정"으로 접어 남김 (design.md 5-11) */
+    function previousHtml(list) {
+      if (!list || !list.length) return '';
+      return '<details class="decision-card__previous"><summary>이전 결정 (' + list.length + '개)</summary>' +
+        list.map(function (p) {
+          return '<div class="decision-card__section">' +
+            '<span class="decision-card__label">' + p.title + ' · ' + (p.date || '—') + '</span>' +
+            '<p>' + p.decision + '</p>' +
+            (p.reason ? '<p class="text-muted">이유: ' + p.reason + '</p>' : '') +
+            (p.changed ? '<p><strong>바꾼 이유:</strong> ' + p.changed + '</p>' : '') +
+            '</div>';
+        }).join('') + '</details>';
     }
 
     function render(filter) {

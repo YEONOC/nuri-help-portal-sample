@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>임가공 대조 — 업무 도움말 포털</title>
+  <title>임가공 관리 — 업무 도움말 포털</title>
   <link rel="stylesheet" href="../css/tokens.css">
   <link rel="stylesheet" href="../css/layout.css">
   <link rel="stylesheet" href="../css/components.css">
@@ -39,19 +39,17 @@
         <li><a href="../help/approval.html">전자결재</a></li>
         <li class="sidebar-divider" role="separator"></li>
         <li><a href="../glossary.html">용어집</a></li>
-        <li><a href="contract.html">총량계약 대조</a></li>
-        <li><a href="blanket-order.html">총량계약 PO 대조</a></li>
-        <li><a href="subcontract.html" aria-current="page">임가공 대조</a></li>
+        <li><a href="contract.html">총량계약 현황</a></li>
+        <li><a href="subcontract.html" aria-current="page">임가공 관리</a></li>
         <li><a href="../admin/index.html">관리자 화면</a></li>
       </ul>
     </nav>
 
     <main class="main-content" id="main-content" tabindex="-1">
-      <h1>임가공 대조</h1>
-      <p class="intro-text">임가공 의뢰서와 입출고 목록 CSV를 올리면, 업체에 보낸 원료에 기준 회수율을 곱해
-        돌려받아야 할 소재 무게를 구하고 실제로 받은 양과 견줘요. 올린 파일의 원본은 바꾸지 않아요.</p>
-      <p>업체에 보낸 원료 대비 받은 소재를 보는 화면이에요. 고객사에서 받은 원료 대비 출고는
-        <a href="blanket-order.html">총량계약 PO 대조</a>를 써요.</p>
+      <h1>임가공 관리</h1>
+      <p class="intro-text">임가공업체에서 받은 원료에 회수율을 곱해 업체에 줘야 할 제품 무게(지급 의무량)를 구하고,
+        나간 제품을 가장 오래된 달부터 차감해 업체별 남은 양을 봐요. 올린 파일의 원본은 바꾸지 않아요.</p>
+      <p>주문·출고 자료는 <a href="contract.html">총량계약 현황</a>과 함께 써요. 여기 등록한 제품 코드의 출고만 임가공으로 계산해요.</p>
 
       <div class="btn-row no-print">
         <button type="button" class="btn btn--secondary" id="btn-sample">견본 데이터 채우기</button>
@@ -59,127 +57,127 @@
         <span id="top-msg" class="hint" aria-live="polite"></span>
       </div>
 
-      <div class="tool-tabs no-print" role="tablist" aria-label="대조 단계">
-        <button type="button" class="tool-tab" role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="true">1. 설정</button>
-        <button type="button" class="tool-tab" role="tab" id="tab-order" aria-controls="panel-order" aria-selected="false" tabindex="-1">2. 의뢰 등록</button>
-        <button type="button" class="tool-tab" role="tab" id="tab-io" aria-controls="panel-io" aria-selected="false" tabindex="-1">3. 입출고 올리기</button>
-        <button type="button" class="tool-tab" role="tab" id="tab-result" aria-controls="panel-result" aria-selected="false" tabindex="-1">4. 대조 결과</button>
+      <div class="tool-tabs no-print" role="tablist" aria-label="임가공 관리 메뉴">
+        <button type="button" class="tool-tab" role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false" tabindex="-1">설정</button>
+        <button type="button" class="tool-tab" role="tab" id="tab-erp" aria-controls="panel-erp" aria-selected="false" tabindex="-1">ERP 자료</button>
+        <button type="button" class="tool-tab" role="tab" id="tab-status" aria-controls="panel-status" aria-selected="true">현황</button>
       </div>
 
-      <!-- 1. 설정 -->
-      <div class="tool-panel" role="tabpanel" id="panel-settings" aria-labelledby="tab-settings">
-        <h2>품목 코드</h2>
-        <p class="hint">여기에 적은 품목 코드만 대조해요. 업체에 보내는 원료와 돌려받는 가공품 모두 계열을 적어 주세요.
-          가공품에 계열을 적으면 같은 계열로 보낸 원료분에서만 차감해요.</p>
+      <!-- 설정 -->
+      <div class="tool-panel" role="tabpanel" id="panel-settings" aria-labelledby="tab-settings" hidden>
+        <p id="settings-msg" class="hint" aria-live="polite"></p>
+
+        <h2>임가공 업체</h2>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr><th>품목 코드</th><th>품목명</th><th>구분</th><th>계열</th><th><span class="sr-only">지우기</span></th></tr>
-            </thead>
-            <tbody id="codes-body"></tbody>
+            <thead><tr><th>업체</th><th class="num">원료 코드</th><th class="num">제품 코드</th><th><span class="sr-only">지우기</span></th></tr></thead>
+            <tbody id="vendor-body"></tbody>
           </table>
         </div>
-        <datalist id="family-options"></datalist>
-        <div class="btn-row">
-          <button type="button" class="btn btn--secondary btn--small" id="btn-add-code">품목 추가</button>
-        </div>
-
-        <h2>기준 회수율 (업체별 · 계열별 · 월별)</h2>
-        <p class="hint">원료를 보낸 달의 회수율로 돌려받아야 할 소재 무게를 계산해요. 업체 칸이 "공통"인 값은 모든 업체에 써요.
-          업체 값이 있으면 그 값을 먼저 쓰고, 그 달 값이 없으면 바로 앞 달 값을 쓰고 결과에 참고 표시를 남겨요.</p>
-        <div id="families-box"></div>
-        <form class="add-form no-print" id="form-add-family">
-          <label>새 계열 이름
-            <input type="text" class="field" id="new-family" autocomplete="off">
-          </label>
-          <button type="submit" class="btn btn--secondary btn--small">계열 추가</button>
+        <form class="add-form no-print" id="form-vendor">
+          <label>업체 이름 <input type="text" class="field" id="vendor-name" autocomplete="off"></label>
+          <button type="submit" class="btn btn--secondary btn--small">업체 추가</button>
         </form>
 
-        <h2>오래 받지 못한 양</h2>
-        <form class="add-form" id="form-stale">
-          <label>보낸 지 몇 개월이 지나도 덜 받았으면 참고 표시할까요?
-            <input type="number" class="field field--num" id="stale-months" min="1" max="24" step="1">
-          </label>
+        <h2>원료 품목 코드</h2>
+        <p class="hint">업체에서 받는 원료의 품목 코드예요. 품목 코드 하나는 한 업체에만 속해요.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>품목 코드</th><th>품목명</th><th>업체</th><th><span class="sr-only">지우기</span></th></tr></thead>
+            <tbody id="raw-body"></tbody>
+          </table>
+        </div>
+        <form class="add-form no-print" id="form-raw">
+          <label>품목 코드 <input type="text" class="field" id="raw-code" autocomplete="off"></label>
+          <label>품목명 <input type="text" class="field" id="raw-name" autocomplete="off"></label>
+          <label>업체 <select class="field" id="raw-vendor"></select></label>
+          <button type="submit" class="btn btn--secondary btn--small">원료 코드 추가</button>
+        </form>
+
+        <h2>회수율 (원료 코드별 · 연도별)</h2>
+        <p class="hint">받은 해의 회수율로 줘야 할 양을 계산해요. 값을 고치면 그해 줘야 할 양을 다시 계산하고 아래 이력에 남겨요.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>원료 코드</th><th>업체</th><th>연도</th><th class="num">회수율(%)</th><th><span class="sr-only">지우기</span></th></tr></thead>
+            <tbody id="rate-body"></tbody>
+          </table>
+        </div>
+        <form class="add-form no-print" id="form-rate">
+          <label>원료 코드 <select class="field" id="rate-code"></select></label>
+          <label>연도 <input type="number" class="field field--num" id="rate-year" min="2000" max="2100" step="1"></label>
+          <label>회수율(%) <input type="number" class="field field--num" id="rate-value" min="0" max="100" step="0.1"></label>
+          <button type="submit" class="btn btn--secondary btn--small">회수율 추가</button>
+        </form>
+
+        <h3>회수율 변경 이력</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>바꾼 날</th><th>원료 코드</th><th>연도</th><th class="num">전(%)</th><th class="num">후(%)</th></tr></thead>
+            <tbody id="history-body"></tbody>
+          </table>
+        </div>
+
+        <h2>제품 품목 코드 (임가공 전용)</h2>
+        <p class="hint">업체에 내주는 제품의 품목 코드예요. 이 코드의 출고는 총량계약 현황에서 빠지고 여기서 계산해요.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>품목 코드</th><th>품목명</th><th>업체</th><th><span class="sr-only">지우기</span></th></tr></thead>
+            <tbody id="prd-body"></tbody>
+          </table>
+        </div>
+        <form class="add-form no-print" id="form-prd">
+          <label>품목 코드 <input type="text" class="field" id="prd-code" autocomplete="off"></label>
+          <label>품목명 <input type="text" class="field" id="prd-name" autocomplete="off"></label>
+          <label>업체 <select class="field" id="prd-vendor"></select></label>
+          <button type="submit" class="btn btn--secondary btn--small">제품 코드 추가</button>
         </form>
       </div>
 
-      <!-- 2. 의뢰 등록 -->
-      <div class="tool-panel" role="tabpanel" id="panel-order" aria-labelledby="tab-order" hidden>
-        <h2>임가공 의뢰서 올리기</h2>
+      <!-- ERP 자료 -->
+      <div class="tool-panel" role="tabpanel" id="panel-erp" aria-labelledby="tab-erp" hidden>
+        <h2>ERP 자료 올리기</h2>
         <div class="callout callout--info">
           <span class="callout__icon" aria-hidden="true">ℹ</span>
           <div class="callout__body">
-            <strong class="callout__title">CSV 형식</strong>
-            <p>첫 행에 열 이름 <code>업체</code>, <code>관리번호</code>, <code>비고</code>를 적어요.
-              비고는 비워도 돼요. UTF-8 인코딩.
-              <a href="../data/samples/subcontract-order-sample.csv" download>견본 CSV 내려받기</a></p>
+            <strong class="callout__title">올리는 파일</strong>
+            <p>[구매관리 › 입고현황]: <code>입고번호</code>, <code>입고일</code>, <code>품목코드</code>, <code>입고수량(kg)</code> — 등록된 원료 코드만 업체·월별로 잡아요.
+              [영업관리 › 주문현황]·[영업관리 › 출고현황]은 총량계약 현황과 같은 파일이에요. 어느 화면에서 올려도 같이 반영돼요.
+              올릴 때마다 쌓이고, 같은 번호는 새 값으로 바꿔요.
+              <a href="../data/samples/erp-inbound-sample.csv" download>입고현황 견본</a> ·
+              <a href="../data/samples/erp-orders-sample.csv" download>주문현황 견본</a> ·
+              <a href="../data/samples/erp-shipments-sample.csv" download>출고현황 견본</a></p>
           </div>
         </div>
         <div class="btn-row">
-          <label for="order-file" class="btn btn--secondary">의뢰서 CSV 선택</label>
-          <input type="file" id="order-file" accept=".csv" class="sr-only">
-          <span id="order-msg" class="hint" aria-live="polite">파일을 선택해 주세요.</span>
+          <label for="inbound-file" class="btn btn--secondary">입고현황 CSV 선택</label>
+          <input type="file" id="inbound-file" accept=".csv" class="sr-only">
+          <label for="orders-file" class="btn btn--secondary">주문현황 CSV 선택</label>
+          <input type="file" id="orders-file" accept=".csv" class="sr-only">
+          <label for="ships-file" class="btn btn--secondary">출고현황 CSV 선택</label>
+          <input type="file" id="ships-file" accept=".csv" class="sr-only">
         </div>
-
-        <h2>등록된 의뢰</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>업체</th><th>관리번호</th><th>비고</th><th><span class="sr-only">지우기</span></th></tr>
-            </thead>
-            <tbody id="order-body"></tbody>
-          </table>
-        </div>
-        <form class="add-form no-print" id="form-add-order">
-          <label>업체 <input type="text" class="field" id="order-vendor" autocomplete="off"></label>
-          <label>관리번호 <input type="text" class="field" id="order-no" autocomplete="off"></label>
-          <label>비고 <input type="text" class="field" id="order-note" autocomplete="off"></label>
-          <button type="submit" class="btn btn--secondary btn--small">의뢰 추가</button>
-        </form>
+        <p id="erp-msg" class="hint" aria-live="polite"></p>
+        <div id="erp-summary"></div>
       </div>
 
-      <!-- 3. 입출고 올리기 -->
-      <div class="tool-panel" role="tabpanel" id="panel-io" aria-labelledby="tab-io" hidden>
-        <h2>입출고 목록 올리기</h2>
-        <div class="callout callout--info">
-          <span class="callout__icon" aria-hidden="true">ℹ</span>
-          <div class="callout__body">
-            <strong class="callout__title">CSV 형식</strong>
-            <p>첫 행에 열 이름 <code>구분</code>, <code>관리번호</code>(임가공 의뢰 번호), <code>품목코드</code>,
-              <code>날짜</code>, <code>수량(kg)</code>을 적어요. 업체에 원료를 보내면 "출고", 소재를 돌려받으면 "입고"예요.
-              새 파일을 올리면 앞서 올린 목록을 바꿔요.
-              <a href="../data/samples/subcontract-io-sample.csv" download>견본 CSV 내려받기</a></p>
-          </div>
-        </div>
-        <div class="btn-row">
-          <label for="io-file" class="btn btn--secondary">입출고 CSV 선택</label>
-          <input type="file" id="io-file" accept=".csv" class="sr-only">
-          <span id="io-msg" class="hint" aria-live="polite">파일을 선택해 주세요.</span>
-        </div>
-        <div id="io-preview"></div>
-      </div>
-
-      <!-- 4. 대조 결과 -->
-      <div class="tool-panel" role="tabpanel" id="panel-result" aria-labelledby="tab-result" hidden>
-        <h2>대조 결과</h2>
-        <div id="result-alerts"></div>
-        <div id="result-stats"></div>
-        <div class="filter-bar no-print" id="result-filter" hidden>
-          <label>업체
-            <select class="field" id="filter-vendor"></select>
-          </label>
-          <label><input type="checkbox" id="filter-issue"> 확인이 필요한 것만 보기</label>
-        </div>
-        <div id="result-groups" aria-live="polite"></div>
-        <p class="hint">가장 먼저 보낸 달의 원료분부터 받은 소재를 차감해요(선입선출).
-          가공이 끝난 배치는 처리 칸의 "완료"를 눌러요. 완료한 배치는 그때까지 받은 양으로 닫히고, 덜 받은 양은 손실로 봐요.</p>
+      <!-- 현황 -->
+      <div class="tool-panel" role="tabpanel" id="panel-status" aria-labelledby="tab-status">
+        <h2>업체별 현황</h2>
+        <div id="status-alerts"></div>
+        <div id="status-stats"></div>
+        <div id="vendor-cards"></div>
+        <div id="vendor-detail" aria-live="polite"></div>
+        <p class="hint">월별 지급 의무량 = 그 달 받은 원료(코드별) × 그해 회수율의 합이에요.
+          나간 제품은 가장 오래된 달의 남은 양부터 차감해요(선입선출).</p>
       </div>
     </main>
   </div>
 
   <script src="../js/theme.js"></script>
-  <script src="../js/blanket-order-calc.js"></script>
+  <script src="../js/erp-data.js"></script>
+  <script src="../js/contract-calc.js"></script>
   <script src="../js/subcontract-calc.js"></script>
+  <script src="../js/sample-data.js"></script>
   <script src="../js/subcontract.js"></script>
 </body>
 </html>
