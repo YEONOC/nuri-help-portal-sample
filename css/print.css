@@ -45,6 +45,12 @@
   /* ── 단계 목록: 쪽에 걸치지 않게 ──────────────────────── */
   .step-item { break-inside: avoid; }
 
+  /* ── 접힌 내용(FAQ 답 등)은 종이에 펼쳐서 ───────────────── */
+  /* 지원하지 않는 브라우저는 theme.js가 인쇄 직전에 펼쳤다가 되돌림 */
+  details::details-content { content-visibility: visible !important; display: block !important; }
+  .faq-item summary::after { content: none !important; }
+  .faq-item details { break-inside: avoid; }
+
   /* ── 표 ────────────────────────────────────────────────── */
   table { border-collapse: collapse; width: 100%; font-size: 11pt; }
   th, td { border: 0.5pt solid #ccc; padding: 4pt 6pt; }

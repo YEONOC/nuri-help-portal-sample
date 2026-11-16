@@ -52,6 +52,19 @@
 
   applyPrintFooter();
   window.addEventListener('beforeprint', applyPrintFooter);
+
+  /* 인쇄할 때 접힌 FAQ 답이 빠지지 않게 펼쳤다가, 인쇄 후 원래대로 접음 */
+  var openedForPrint = [];
+  window.addEventListener('beforeprint', function () {
+    openedForPrint = Array.prototype.filter.call(document.querySelectorAll('details:not([open])'), function (d) {
+      d.open = true;
+      return true;
+    });
+  });
+  window.addEventListener('afterprint', function () {
+    openedForPrint.forEach(function (d) { d.open = false; });
+    openedForPrint = [];
+  });
   if (scriptSrc && window.fetch) {
     fetch(new URL('../data/site.json', scriptSrc).href)
       .then(function (r) { return r.json(); })
