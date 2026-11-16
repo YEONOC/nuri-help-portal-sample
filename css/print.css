@@ -54,18 +54,19 @@
   th, td { white-space: normal !important; }
   tr { break-inside: avoid; }
 
-  /* ── 쪽 아래 정보 (페이지 제목·버전·인쇄 날짜) ─────────── */
+  /* ── 쪽 아래 정보 ───────────────────────────────────────── */
+  /* 기본값. theme.js가 페이지 제목·도움말 기준일·인쇄 날짜를 넣은 문구로 덮어씀 */
   @page {
     margin: 20mm 15mm;
-    @bottom-center {
+    @bottom-left {
       content: "누리금속(가상) 업무 도움말 포털";
       font-size: 9pt;
-      color: #666;
+      color: #555;
     }
     @bottom-right {
       content: counter(page);
       font-size: 9pt;
-      color: #666;
+      color: #555;
     }
   }
 

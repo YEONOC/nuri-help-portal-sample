@@ -24,6 +24,46 @@
     document.documentElement.setAttribute('data-fieldmode', 'on');
   }
 
+  /* ── 인쇄 쪽 아래: 페이지 제목 · 도움말 기준일 · 인쇄 날짜 (design.md 7장) ── */
+  /* print.css의 고정 문구를 덮어씀. 기준일을 못 읽어도 제목·인쇄 날짜는 찍힘 */
+  var scriptSrc = document.currentScript && document.currentScript.src;
+  var contentDate = '';
+
+  function today() {
+    var d = new Date(), m = d.getMonth() + 1, day = d.getDate();
+    return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+  }
+  function cssString(s) { return '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"'; }
+
+  function applyPrintFooter() {
+    var title = document.title.split(' — ')[0];
+    var right = (contentDate ? '도움말 ' + contentDate + ' 기준 · ' : '') + '인쇄 ' + today() + ' · ';
+    var style = document.getElementById('print-footer-style');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'print-footer-style';
+      document.head.appendChild(style);
+    }
+    style.textContent = '@media print { @page {' +
+      ' @bottom-left { content: ' + cssString('누리금속(가상) 업무 도움말 포털 · ' + title) + '; font-size: 9pt; color: #555; }' +
+      ' @bottom-right { content: ' + cssString(right) + ' counter(page); font-size: 9pt; color: #555; }' +
+      ' } }';
+  }
+
+  applyPrintFooter();
+  window.addEventListener('beforeprint', applyPrintFooter);
+  if (scriptSrc && window.fetch) {
+    fetch(new URL('../data/site.json', scriptSrc).href)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(data.contentDate || '')) {
+          contentDate = data.contentDate;
+          applyPrintFooter();
+        }
+      })
+      .catch(function () { /* 기준일 없이 찍음 */ });
+  }
+
   /* ── DOM 준비 후 버튼 연결 ───────────────────────────────── */
   document.addEventListener('DOMContentLoaded', function () {
     var btnDark  = document.getElementById('btn-darkmode');
