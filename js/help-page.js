@@ -28,7 +28,7 @@ var HelpPage = (function () {
   }
 
   /* ── FAQ 렌더링 (design.md 5-5) ─────────────────────── */
-  function renderFaq(faq) {
+  function renderFaq(faq, sectionId) {
     if (!faq || !faq.length) return '';
     var items = faq.map(function (item) {
       return '<li class="faq-item"><details>' +
@@ -36,7 +36,8 @@ var HelpPage = (function () {
         '<div class="faq-answer"><p>' + parseChips(item.a) + '</p></div>' +
         '</details></li>';
     });
-    return '<h3 id="faq">자주 묻는 질문</h3>' +
+    /* 한 페이지에 절마다 FAQ가 있으므로 id를 절 이름으로 구분 (예: draft-faq) */
+    return '<h3 id="' + sectionId + '-faq">자주 묻는 질문</h3>' +
       '<ul class="faq-list">' + items.join('') + '</ul>';
   }
 
@@ -49,7 +50,7 @@ var HelpPage = (function () {
       '<h2 id="h-' + page.id + '">' + page.title + '</h2>' +
       desc +
       renderSteps(page.steps) +
-      renderFaq(page.faq) +
+      renderFaq(page.faq, page.id) +
       '</section>';
   }
 
