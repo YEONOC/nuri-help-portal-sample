@@ -1,0 +1,2 @@
+# CLAUDE.md 4장: 줄바꿈 LF. PC의 git 설정(autocrlf)과 관계없이 LF로 꺼냄
+* text=auto eol=lf
