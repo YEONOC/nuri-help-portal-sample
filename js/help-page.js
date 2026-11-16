@@ -33,7 +33,7 @@ var HelpPage = (function () {
     var items = faq.map(function (item) {
       return '<li class="faq-item"><details>' +
         '<summary>' + item.q + '</summary>' +
-        '<div class="faq-answer"><p>' + item.a + '</p></div>' +
+        '<div class="faq-answer"><p>' + parseChips(item.a) + '</p></div>' +
         '</details></li>';
     });
     return '<h3 id="faq">자주 묻는 질문</h3>' +
