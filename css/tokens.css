@@ -1,0 +1,109 @@
+/* tokens.css — CSS 변수 (design.md 2·3·4장) */
+
+:root {
+  /* ── 색: 기본 (라이트) ───────────────────────────────── */
+  --bg:          #FFFFFF;
+  --surface:     #F5F7F9;
+  --text:        #1B2430;
+  --text-muted:  #5A6676;
+  --primary:     #1F5FAD;
+  --border:      #D5DBE3;
+
+  /* ── 색: 안내 박스 ──────────────────────────────────── */
+  --info-text:    #1F5FAD;
+  --info-bg:      #EAF2FB;
+  --tip-text:     #1E7A4C;
+  --tip-bg:       #E8F5EE;
+  --warn-text:    #8A5A00;
+  --warn-bg:      #FFF4DB;
+  --danger-text:  #B42318;
+  --danger-bg:    #FDECEA;
+  --pending-text: #6B4FA3;
+  --pending-bg:   #F1ECFA;
+
+  /* ── 색: 관리자 띠 ──────────────────────────────────── */
+  --admin-banner-bg:   #1A212B;
+  --admin-banner-text: #E6EAF0;
+
+  /* ── 색: 견본 배너 ──────────────────────────────────── */
+  --demo-banner-bg:   #FFF4DB;
+  --demo-banner-text: #8A5A00;
+
+  /* ── 간격 단위 ───────────────────────────────────────── */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 16px;
+  --s4: 24px;
+  --s5: 32px;
+  --s6: 48px;
+
+  /* ── 글꼴 ────────────────────────────────────────────── */
+  --font-body: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --font-mono: "D2Coding", Consolas, monospace;
+
+  /* ── 글자 크기 ───────────────────────────────────────── */
+  --fs-base:  16px;
+  --fs-sm:    14px;
+  --fs-h1:    28px;
+  --fs-h2:    22px;
+  --fs-h3:    18px;
+  --lh-body:  1.7;
+  --lh-title: 1.35;
+
+  /* ── 레이아웃 ────────────────────────────────────────── */
+  --sidebar-width:  240px;
+  --content-max:    760px;
+  --radius-card:    8px;
+  --radius-btn:     6px;
+  --radius-badge:   999px;
+
+  /* ── 포커스 링 ───────────────────────────────────────── */
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary);
+}
+
+/* ── 다크 모드 ───────────────────────────────────────────── */
+/* 화면에만 적용. 인쇄는 다크 모드여도 항상 라이트 색 (흰 종이에 밝은 글자가 찍히지 않게) */
+@media screen and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:          #11161D;
+    --surface:     #1A212B;
+    --text:        #E6EAF0;
+    --text-muted:  #A3AEBD;
+    --primary:     #7FB2F0;
+    --border:      #2E3A4A;
+
+    --info-text:    #7FB2F0;  --info-bg:      #16263A;
+    --tip-text:     #6FCF9C;  --tip-bg:       #15291F;
+    --warn-text:    #F2C255;  --warn-bg:      #2E2512;
+    --danger-text:  #F59A8F;  --danger-bg:    #33191A;
+    --pending-text: #C3AEF0;  --pending-bg:   #241D36;
+
+    --demo-banner-bg:   #2E2512;
+    --demo-banner-text: #F2C255;
+  }
+}
+
+@media screen {
+  :root[data-theme="dark"] {
+    --bg:          #11161D;
+    --surface:     #1A212B;
+    --text:        #E6EAF0;
+    --text-muted:  #A3AEBD;
+    --primary:     #7FB2F0;
+    --border:      #2E3A4A;
+
+    --info-text:    #7FB2F0;  --info-bg:      #16263A;
+    --tip-text:     #6FCF9C;  --tip-bg:       #15291F;
+    --warn-text:    #F2C255;  --warn-bg:      #2E2512;
+    --danger-text:  #F59A8F;  --danger-bg:    #33191A;
+    --pending-text: #C3AEF0;  --pending-bg:   #241D36;
+
+    --demo-banner-bg:   #2E2512;
+    --demo-banner-text: #F2C255;
+  }
+}
+
+/* ── 현장 모드 (글자 크게) ───────────────────────────────── */
+[data-fieldmode="on"] {
+  --fs-base: 18px;
+}

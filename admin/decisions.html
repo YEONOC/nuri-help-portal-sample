@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>결정 기록 — 업무 도움말 포털</title>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/print.css" media="print">
+</head>
+<body>
+
+  <div class="admin-banner" role="note" aria-label="관리자 화면 안내">
+    관리자 화면 — 직원에게는 보이지 않습니다
+    <span class="admin-banner__note">
+      (정적 사이트 특성상 URL을 알면 접근 가능. 비밀번호 보호 없음.)
+    </span>
+  </div>
+
+  <div class="demo-banner" role="note">
+    이것은 <strong>가상 회사(누리금속)</strong>를 설정한 포트폴리오 견본입니다.
+    실제 회사나 ERP 제품과 관계없습니다.
+  </div>
+
+  <header class="site-header">
+    <a href="../index.html" class="site-name" aria-label="업무 도움말 포털 홈">
+      업무 도움말 포털
+      <span class="site-name__tag">누리금속(가상)</span>
+    </a>
+    <button class="btn-icon btn-menu" id="btn-menu"
+            aria-label="메뉴 열기" aria-expanded="false" aria-controls="sidebar">☰</button>
+    <nav class="header-tools" aria-label="보기 설정">
+      <button class="btn-icon" id="btn-darkmode" aria-label="다크 모드 켜기/끄기" aria-pressed="false">다크</button>
+    </nav>
+  </header>
+
+  <div class="page-wrap">
+    <nav class="sidebar" id="sidebar" aria-label="관리자 메뉴">
+      <button class="sidebar-close" id="btn-sidebar-close" aria-label="메뉴 닫기">닫기</button>
+      <ul role="list">
+        <li><a href="index.html">설정값</a></li>
+        <li><a href="decisions.html" aria-current="page">결정 기록</a></li>
+        <li class="sidebar-divider" role="separator"></li>
+        <li><a href="../index.html">직원용 메인</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content" id="main-content" tabindex="-1">
+      <h1>결정 기록</h1>
+      <p class="intro-text">ERP 운영 규칙의 배경·결정·이유를 남겨요.
+         바뀐 결정은 지우지 않고 "이전 결정"으로 접어 남겨요.</p>
+
+      <div class="filter-row" id="filter-row">
+        <label for="filter-status">상태 필터:</label>
+        <select id="filter-status">
+          <option value="all">전체</option>
+          <option value="confirmed">확정</option>
+          <option value="reviewing">검토 중</option>
+          <option value="hold">보류</option>
+        </select>
+      </div>
+
+      <div id="decisions-content"></div>
+    </main>
+  </div>
+
+  <script src="../js/theme.js"></script>
+  <script>
+  (function () {
+    var allDecisions = [];
+
+    function badgeHtml(status) {
+      if (status === 'confirmed') return '<span class="badge badge--confirmed">확정</span>';
+      if (status === 'reviewing') return '<span class="badge badge--reviewing">검토 중</span>';
+      return '<span class="badge badge--hold">보류</span>';
+    }
+
+    function cardHtml(d) {
+      var approver = d.approver
+        ? '<span>승인자: ' + d.approver + '</span>'
+        : '<span class="text-muted">승인자: 미확정</span>';
+      return '<article class="decision-card" data-status="' + d.status + '">' +
+        '<div class="decision-card__header">' +
+        '<span class="decision-card__title">' + d.title + '</span>' +
+        badgeHtml(d.status) +
+        '</div>' +
+        '<div class="decision-card__section">' +
+        '<span class="decision-card__label">배경</span>' +
+        '<p>' + d.background + '</p>' +
+        '</div>' +
+        '<div class="decision-card__section">' +
+        '<span class="decision-card__label">결정</span>' +
+        '<p>' + d.decision + '</p>' +
+        '</div>' +
+        '<div class="decision-card__section">' +
+        '<span class="decision-card__label">이유</span>' +
+        '<p>' + d.reason + '</p>' +
+        '</div>' +
+        '<div class="decision-card__meta">' +
+        '<span>요청자: ' + (d.requester || '—') + '</span>' +
+        approver +
+        '<span>반영일: ' + (d.date || '—') + '</span>' +
+        '</div>' +
+        '</article>';
+    }
+
+    function render(filter) {
+      var items = filter === 'all'
+        ? allDecisions
+        : allDecisions.filter(function (d) { return d.status === filter; });
+      var el = document.getElementById('decisions-content');
+      if (!items.length) {
+        el.innerHTML = '<p class="text-muted">해당 상태의 결정 기록이 없어요.</p>';
+      } else {
+        el.innerHTML = items.map(cardHtml).join('');
+      }
+    }
+
+    fetch('../data/decisions.json')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        allDecisions = data.decisions;
+        render('all');
+        var sel = document.getElementById('filter-status');
+        if (sel) sel.addEventListener('change', function () { render(sel.value); });
+      })
+      .catch(function () {
+        document.getElementById('decisions-content').textContent = '데이터를 불러오지 못했어요.';
+      });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+/* print.css — 인쇄 규칙 (design.md 7장) */
+
+@media print {
+  /* ── 숨김 ─────────────────────────────────────────────── */
+  .demo-banner,
+  .site-header,
+  .sidebar,
+  .search-overlay,
+  .btn-icon,
+  .header-tools,
+  .admin-banner,
+  .page-toc,
+  .quick-links,
+  .btn,
+  .no-print,
+  .col-detail { display: none !important; }
+
+  /* ── 기본 레이아웃 ─────────────────────────────────────── */
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+    color: #000;
+    background: #fff;
+  }
+
+  .page-wrap { display: block; }
+  .main-content { padding: 0; max-width: 100%; }
+
+  /* ── 링크: 주소를 괄호로 붙이지 않음 (사내 주소 노출 방지) */
+  a::after { content: none !important; }
+  a { color: #000; text-decoration: underline; }
+
+  /* ── 모듈 카드: 단순 목록으로 ────────────────────────── */
+  .module-grid { display: block; }
+  .module-card { border: 1px solid #ccc; padding: 8pt; margin-bottom: 6pt; break-inside: avoid; }
+
+  /* ── 안내 박스: 왼쪽 굵은 테두리 + 머리말 ─────────────── */
+  .callout { background: none !important; border-left: 4pt solid; padding-left: 8pt; break-inside: avoid; }
+  .callout--info    { border-left-color: #1F5FAD; }
+  .callout--tip     { border-left-color: #1E7A4C; }
+  .callout--warn    { border-left-color: #8A5A00; }
+  .callout--danger  { border-left-color: #B42318; }
+  .callout--pending { border-left-color: #6B4FA3; }
+
+  /* ── 단계 목록: 쪽에 걸치지 않게 ──────────────────────── */
+  .step-item { break-inside: avoid; }
+
+  /* ── 표 ────────────────────────────────────────────────── */
+  table { border-collapse: collapse; width: 100%; font-size: 11pt; }
+  th, td { border: 0.5pt solid #ccc; padding: 4pt 6pt; }
+  th { background: #f0f0f0; font-weight: bold; }
+  /* 화면에서는 표 안 가로 스크롤이지만 종이에서는 잘리므로 줄바꿈해서 폭 안에 넣음 */
+  .table-wrap { overflow: visible; }
+  th, td { white-space: normal !important; }
+  tr { break-inside: avoid; }
+
+  /* ── 쪽 아래 정보 (페이지 제목·버전·인쇄 날짜) ─────────── */
+  @page {
+    margin: 20mm 15mm;
+    @bottom-center {
+      content: "누리금속(가상) 업무 도움말 포털";
+      font-size: 9pt;
+      color: #666;
+    }
+    @bottom-right {
+      content: counter(page);
+      font-size: 9pt;
+      color: #666;
+    }
+  }
+
+  /* ── 제목 ──────────────────────────────────────────────── */
+  h1 { font-size: 18pt; break-after: avoid; }
+  h2 { font-size: 14pt; break-after: avoid; }
+  h3 { font-size: 12pt; break-after: avoid; }
+}

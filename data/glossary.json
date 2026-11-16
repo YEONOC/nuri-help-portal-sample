@@ -1,0 +1,54 @@
+{
+  "terms": [
+    {
+      "term": "총량계약",
+      "def": "고객사와 기간·총수량을 먼저 정하고 여러 번에 나눠 주문·출고하는 계약. 계약 대비 출고·잔량을 확인해야 해요.",
+      "url": "glossary.html#total-contract"
+    },
+    {
+      "term": "회수율",
+      "def": "받은 원료 무게 대비 나가야 할 제품 무게의 비율(%). 총량계약 PO 대조에서는 계열별·월별로 정하고, 원료가 들어온 달의 값을 써요.",
+      "url": "glossary.html#recovery-rate"
+    },
+    {
+      "term": "선입선출",
+      "def": "먼저 들어온 것부터 먼저 내보내는 방식. 총량계약 PO 대조에서는 출고를 가장 먼저 들어온 달의 잔량부터 차감해요.",
+      "url": "glossary.html#fifo"
+    },
+    {
+      "term": "관리번호",
+      "def": "입출고 목록에서 어느 PO의 거래인지 적는 칸. PO 번호를 적어 두면 총량계약 PO 대조에서 등록된 PO와 맞춰요.",
+      "url": "glossary.html#control-number"
+    },
+    {
+      "term": "임가공",
+      "def": "원료를 임가공업체에 보내 가공을 맡기고 가공된 소재를 돌려받는 거래. 보낸 양 대비 돌려받은 양(회수율)과 남은 양을 추적해요.",
+      "url": "glossary.html#subcontract"
+    },
+    {
+      "term": "월마감",
+      "def": "매월 재고를 확정하는 절차. 마감 전에 그 달의 모든 입고·출고·이동을 끝내야 해요.",
+      "url": "glossary.html#month-close"
+    },
+    {
+      "term": "품번",
+      "def": "사내 ERP에서 소재를 구별하는 번호. 형식: NR-제품군2자리-일련번호4자리 (예: NR-01-0001).",
+      "url": "glossary.html#item-code"
+    },
+    {
+      "term": "결재선",
+      "def": "전자결재 문서를 순서대로 검토·승인하는 사람의 목록. 기안자가 직접 지정해요.",
+      "url": "glossary.html#approval-line"
+    },
+    {
+      "term": "상신",
+      "def": "기안 작성을 마치고 결재를 요청하는 행위. 상신하면 첫 번째 결재자에게 알림이 가요.",
+      "url": "glossary.html#submission"
+    },
+    {
+      "term": "대결",
+      "def": "결재자가 부재 중일 때 다른 사람이 대신 결재하는 것. 결재자가 ERP에서 대결자를 지정해요.",
+      "url": "glossary.html#delegate"
+    }
+  ]
+}

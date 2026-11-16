@@ -1,0 +1,52 @@
+{
+  "settings": [
+    {
+      "id": "s-001",
+      "category": "재고",
+      "name": "월마감 기준일",
+      "value": "익월 3일",
+      "status": "reviewing",
+      "note": "결정 기록 d-002 참조"
+    },
+    {
+      "id": "s-002",
+      "category": "영업",
+      "name": "총량계약 초과 출고 허용",
+      "value": "허용 (경고 표시)",
+      "status": "confirmed",
+      "note": "ERP에서 막지 않음. 담당자가 직접 확인해야 해요."
+    },
+    {
+      "id": "s-003",
+      "category": "전자결재",
+      "name": "결재 알림 방법",
+      "value": "ERP 내 알림",
+      "status": "confirmed",
+      "note": "이메일 알림은 사내망 외부 연결이 필요해 현재 미적용."
+    },
+    {
+      "id": "s-004",
+      "category": "구매",
+      "name": "입고 수량 허용 오차",
+      "value": "미확정",
+      "status": "pending",
+      "note": "공급사마다 계량 오차가 달라요. 오차 범위를 정해야 ERP 경고 기준을 설정할 수 있어요."
+    },
+    {
+      "id": "s-005",
+      "category": "영업",
+      "name": "총량계약 PO 대조 — 회수율이 없는 달",
+      "value": "바로 앞 달 회수율 사용 (참고 표시)",
+      "status": "confirmed",
+      "note": "결정 기록 d-004 참조"
+    },
+    {
+      "id": "s-006",
+      "category": "영업",
+      "name": "총량계약 PO 대조 — 입고보다 먼저 나간 출고",
+      "value": "선입선출로 차감 (참고 표시)",
+      "status": "confirmed",
+      "note": "결정 기록 d-004 참조"
+    }
+  ]
+}

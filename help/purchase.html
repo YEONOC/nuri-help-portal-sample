@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구매 발주 — 업무 도움말 포털</title>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/print.css" media="print">
+</head>
+<body>
+
+  <div class="demo-banner" role="note">
+    이것은 <strong>가상 회사(누리금속)</strong>를 설정한 포트폴리오 견본입니다.
+    실제 회사나 ERP 제품과 관계없습니다.
+  </div>
+
+  <header class="site-header">
+    <a href="../index.html" class="site-name" aria-label="업무 도움말 포털 홈">
+      업무 도움말 포털
+      <span class="site-name__tag">누리금속(가상)</span>
+    </a>
+    <button class="btn-icon btn-menu" id="btn-menu"
+            aria-label="메뉴 열기" aria-expanded="false" aria-controls="sidebar">☰</button>
+    <nav class="header-tools" aria-label="보기 설정">
+      <button class="btn-icon" id="btn-search" aria-label="검색 열기 (단축키 /)">검색</button>
+      <button class="btn-icon" id="btn-fieldmode" aria-label="현장 모드 켜기/끄기" aria-pressed="false">글자 크게</button>
+      <button class="btn-icon" id="btn-darkmode" aria-label="다크 모드 켜기/끄기" aria-pressed="false">다크</button>
+    </nav>
+  </header>
+
+  <div class="search-overlay" id="search-overlay" role="dialog" aria-modal="true" aria-label="검색" hidden>
+    <div class="search-box">
+      <label for="search-input" class="sr-only">검색어</label>
+      <input id="search-input" type="search" placeholder="검색어를 입력하세요" autocomplete="off">
+      <button class="btn-icon" id="btn-search-close" aria-label="검색 닫기">닫기</button>
+    </div>
+    <ul class="search-results" id="search-results" role="list" aria-live="polite"></ul>
+  </div>
+
+  <div class="page-wrap">
+    <nav class="sidebar" id="sidebar" aria-label="모듈 메뉴">
+      <button class="sidebar-close" id="btn-sidebar-close" aria-label="메뉴 닫기">닫기</button>
+      <ul role="list">
+        <li><a href="sales.html">영업 주문</a></li>
+        <li><a href="purchase.html" aria-current="page">구매 발주</a></li>
+        <li><a href="inventory.html">재고 이동</a></li>
+        <li><a href="approval.html">전자결재</a></li>
+        <li class="sidebar-divider" role="separator"></li>
+        <li><a href="../glossary.html">용어집</a></li>
+        <li><a href="../tools-page/contract.html">총량계약 대조</a></li>
+        <li><a href="../tools-page/blanket-order.html">총량계약 PO 대조</a></li>
+        <li><a href="../admin/index.html">관리자 화면</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content" id="main-content" tabindex="-1">
+      <noscript>
+        <div class="callout callout--warn">
+          <span class="callout__icon" aria-hidden="true">⚠</span>
+          <div class="callout__body">
+            <strong class="callout__title">주의</strong>
+            <p>이 페이지는 JavaScript가 필요해요.
+               브라우저 설정에서 JavaScript를 허용해 주세요.</p>
+          </div>
+        </div>
+      </noscript>
+      <div id="page-content"></div>
+    </main>
+  </div>
+
+  <script src="../js/theme.js"></script>
+  <script src="../js/search.js"></script>
+  <script src="../js/help-page.js"></script>
+  <script>HelpPage.load('../data/help-purchase.json', 'page-content');</script>
+</body>
+</html>
