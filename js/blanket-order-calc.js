@@ -259,7 +259,10 @@
     return { groups: groups, alerts: alerts, totals: totals, counts: counts, rowKinds: rowKinds };
   }
 
-  var api = { parsePoCsv: parsePoCsv, parseIoCsv: parseIoCsv, compute: compute };
+  var api = {
+    parsePoCsv: parsePoCsv, parseIoCsv: parseIoCsv, compute: compute,
+    util: { parseCsv: parseCsv, findCol: findCol, round2: round2 }
+  };
   root.BlanketOrder = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
